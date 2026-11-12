@@ -1,0 +1,29 @@
+{
+  "featuredProducts": [
+    {
+      "name": "Computing and Internet",
+      "url": "/computing-and-internet",
+      "price": 10.00,
+      "category": "Books"
+    },
+    {
+      "name": "Fiction",
+      "url": "/fiction",
+      "price": 24.00,
+      "category": "Books"
+    },
+    {
+      "name": "Black & White Diamond Heart",
+      "url": "/black-white-diamond-heart",
+      "price": 130.00,
+      "category": "Jewelry",
+      "supportsWishlist": true
+    }
+  ],
+  "searchQueries": {
+    "exactKeyword": "Computing",
+    "partialKeyword": "book",
+    "zeroResultsKeyword": "NonExistentGizmoXYZ999",
+    "specialChars": "<script>alert(1)</script>"
+  }
+}

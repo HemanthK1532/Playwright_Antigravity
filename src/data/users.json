@@ -1,0 +1,35 @@
+{
+  "validUser": {
+    "gender": "male",
+    "firstName": "Alex",
+    "lastName": "Tester",
+    "email": "autouser_permanent@example.com",
+    "password": "Password123!"
+  },
+  "invalidUsers": [
+    {
+      "description": "Unregistered email",
+      "email": "nonexistent_user_998811@example.com",
+      "password": "Password123!",
+      "expectedErrorMessage": "Login was unsuccessful. Please correct the errors and try again."
+    },
+    {
+      "description": "Wrong password",
+      "email": "autouser_permanent@example.com",
+      "password": "WrongPassword999!",
+      "expectedErrorMessage": "The credentials provided are incorrect"
+    },
+    {
+      "description": "Invalid email format",
+      "email": "invalid-email-format",
+      "password": "Password123!",
+      "expectedValidationError": "Please enter a valid email address."
+    },
+    {
+      "description": "Empty credentials",
+      "email": "",
+      "password": "",
+      "expectedValidationError": "No customer account found"
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "registrationValidation": {
+    "emptyFirstName": "First name is required.",
+    "emptyLastName": "Last name is required.",
+    "emptyEmail": "Email is required.",
+    "invalidEmail": "Wrong email",
+    "emptyPassword": "Password is required.",
+    "shortPassword": "The password should have at least 6 characters.",
+    "mismatchedPassword": "The password and confirmation password do not match.",
+    "duplicateEmail": "The specified email already exists"
+  },
+  "cartValidation": {
+    "emptyCartMessage": "Your Shopping Cart is empty!",
+    "termsOfServiceWarning": "Please accept the terms of service before the next step."
+  }
+}

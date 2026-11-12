@@ -1,0 +1,42 @@
+{
+  "name": "demowebshop-playwright-framework",
+  "version": "1.0.0",
+  "description": "Enterprise-grade Playwright TypeScript Automation Framework for Demo Web Shop",
+  "main": "index.js",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:smoke": "playwright test --grep @smoke",
+    "test:regression": "playwright test --grep @regression",
+    "test:auth": "playwright test tests/auth.spec.ts",
+    "test:register": "playwright test tests/register.spec.ts",
+    "test:search": "playwright test tests/search.spec.ts",
+    "test:category": "playwright test tests/category.spec.ts",
+    "test:cart": "playwright test tests/cart.spec.ts",
+    "test:wishlist": "playwright test tests/wishlist.spec.ts",
+    "test:checkout": "playwright test tests/checkout.spec.ts",
+    "test:chromium": "playwright test --project=chromium",
+    "test:firefox": "playwright test --project=firefox",
+    "test:webkit": "playwright test --project=webkit",
+    "report:html": "playwright show-report",
+    "report:allure:generate": "allure generate allure-results --clean -o allure-report",
+    "report:allure:open": "allure open allure-report"
+  },
+  "keywords": [
+    "playwright",
+    "typescript",
+    "automation",
+    "pom",
+    "allure",
+    "demowebshop"
+  ],
+  "author": "Antigravity Senior QA Automation Architect",
+  "license": "MIT",
+  "devDependencies": {
+    "@playwright/test": "^1.50.0",
+    "@types/node": "^22.10.0",
+    "allure-commandline": "^2.32.0",
+    "allure-playwright": "^3.0.9",
+    "typescript": "^5.7.0"
+  }
+}

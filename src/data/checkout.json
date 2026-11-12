@@ -1,0 +1,28 @@
+{
+  "billingAddress": {
+    "firstName": "QA",
+    "lastName": "Engineer",
+    "email": "qa.engineer.demowebshop@example.com",
+    "company": "Quality Assurance Ltd",
+    "country": "United States",
+    "countryId": "1",
+    "state": "California",
+    "city": "San Francisco",
+    "address1": "500 Market Street",
+    "address2": "Floor 12",
+    "zipPostalCode": "94105",
+    "phoneNumber": "4155551234",
+    "faxNumber": "4155555678"
+  },
+  "shippingMethods": {
+    "ground": "Ground (0.00)",
+    "nextDayAir": "Next Day Air (0.00)",
+    "secondDayAir": "2nd Day Air (0.00)"
+  },
+  "paymentMethods": {
+    "cashOnDelivery": "Cash On Delivery (COD)",
+    "checkMoneyOrder": "Check / Money Order",
+    "creditCard": "Credit Card",
+    "purchaseOrder": "Purchase Order"
+  }
+}
