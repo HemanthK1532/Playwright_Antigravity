@@ -3,6 +3,13 @@ import { BasePage } from './BasePage';
 
 /**
  * Page Object for Customer Login
+ *
+ * Locator strategy:
+ *  - Form fields  → getByLabel()   (labels use <label for="…"> matching input id)
+ *  - Buttons      → getByRole('button', …)
+ *  - Links        → getByRole('link', …)
+ *  - Checkboxes   → getByRole('checkbox', …)
+ *  - Validation   → locator() scoped to error containers (no ARIA equivalent)
  */
 export class LoginPage extends BasePage {
   readonly emailInput: Locator;
@@ -19,41 +26,45 @@ export class LoginPage extends BasePage {
 
   constructor(page: Page) {
     super(page);
-    this.emailInput = page.locator('#Email');
-    this.passwordInput = page.locator('#Password');
-    this.rememberMeCheckbox = page.locator('#RememberMe');
-    this.forgotPasswordLink = page.locator('a[href*="passwordrecovery"]');
-    this.loginButton = page.locator('input.login-button');
 
-    this.checkoutAsGuestButton = page.locator('input.checkout-as-guest-button');
-    this.registerButton = page.locator('input.register-button');
+    // Form fields — nopCommerce renders <label for="Email">Email:</label> etc.
+    this.emailInput    = page.getByLabel('Email:');
+    this.passwordInput = page.getByLabel('Password:');
 
+    // Checkbox — <label for="RememberMe">Remember me?</label>
+    this.rememberMeCheckbox = page.getByRole('checkbox', { name: /remember me/i });
+
+    // Links
+    this.forgotPasswordLink = page.getByRole('link', { name: /forgot password/i });
+
+    // Buttons — <input type="submit" value="Log in" class="login-button">
+    this.loginButton = page.getByRole('button', { name: 'Log in' });
+
+    // Checkout-as-guest / register buttons on the login/checkout-choice page
+    this.checkoutAsGuestButton = page.getByRole('button', { name: 'Checkout as Guest' });
+    this.registerButton        = page.getByRole('button', { name: 'Register' });
+
+    // Validation messages — no semantic locator available; use CSS
     this.validationSummaryErrors = page.locator('.validation-summary-errors');
-    this.emailValidationError = page.locator('span[data-valmsg-for="Email"]');
+    this.emailValidationError    = page.locator('span[data-valmsg-for="Email"]');
   }
 
-  /**
-   * Performs standard login
-   */
+  /** Fills email, password, optionally ticks Remember me, then clicks Log in. */
   async login(email: string, pass: string, rememberMe: boolean = false) {
     if (email) await this.emailInput.fill(email);
-    if (pass) await this.passwordInput.fill(pass);
+    if (pass)  await this.passwordInput.fill(pass);
     if (rememberMe) await this.rememberMeCheckbox.check();
     await this.loginButton.click();
     await this.page.waitForLoadState('domcontentloaded');
   }
 
-  /**
-   * Clicks Checkout as Guest if presented (during checkout flow)
-   */
+  /** Clicks "Checkout as Guest" (shown on the checkout login-choice page). */
   async clickCheckoutAsGuest() {
     await this.checkoutAsGuestButton.click();
     await this.page.waitForLoadState('domcontentloaded');
   }
 
-  /**
-   * Clicks Register button on login page
-   */
+  /** Clicks the "Register" button on the login page. */
   async clickRegisterButton() {
     await this.registerButton.click();
     await this.page.waitForLoadState('domcontentloaded');

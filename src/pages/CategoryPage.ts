@@ -2,7 +2,15 @@ import { Page, Locator } from '@playwright/test';
 import { BasePage } from './BasePage';
 
 /**
- * Page Object for Category and Subcategory Listings
+ * Page Object for Category / Sub-Category Product Listings
+ *
+ * Locator strategy:
+ *  - Page heading   → getByRole('heading', { level: 1 })
+ *  - Sub-category links → getByRole('link') scoped to sub-category block
+ *  - Sort / size / view selects → locator('#id') — these <select> elements have
+ *    no associated <label>, so semantic locators cannot uniquely identify them
+ *  - Product titles → getByRole('link') scoped within .product-title
+ *  - Prices         → locator('.actual-price')  (no accessible name)
  */
 export class CategoryPage extends BasePage {
   readonly pageTitle: Locator;
@@ -16,68 +24,68 @@ export class CategoryPage extends BasePage {
 
   constructor(page: Page) {
     super(page);
-    this.pageTitle = page.locator('.page-title h1');
-    this.subCategories = page.locator('.sub-category-item h2 a');
-    this.orderBySelect = page.locator('#products-orderby');
+
+    this.pageTitle      = page.getByRole('heading', { level: 1 });
+    this.subCategories  = page.locator('.sub-category-item h2').getByRole('link');
+
+    // These selects have no <label> → ID fallback is correct here
+    this.orderBySelect  = page.locator('#products-orderby');
     this.pageSizeSelect = page.locator('#products-pagesize');
     this.viewModeSelect = page.locator('#products-viewmode');
-    this.productItems = page.locator('.product-item');
-    this.productTitles = page.locator('.product-title a');
-    this.productPrices = page.locator('.prices .actual-price');
+
+    this.productItems   = page.locator('.product-item');
+    this.productTitles  = page.locator('.product-title').getByRole('link');
+    this.productPrices  = page.locator('.prices .actual-price');
   }
 
   /**
-   * Sort products by option text (e.g. "Price: Low to High", "Name: A to Z")
+   * Sorts the product list by the visible option label (e.g. "Price: Low to High").
+   * Uses Promise.all because the select triggers a full-page navigation.
    */
   async sortBy(optionText: string) {
     await Promise.all([
       this.page.waitForNavigation({ waitUntil: 'domcontentloaded' }).catch(() => {}),
-      this.orderBySelect.selectOption({ label: optionText })
+      this.orderBySelect.selectOption({ label: optionText }),
     ]);
   }
 
   /**
-   * Set page display size (e.g. "4", "8", "12")
+   * Changes the results-per-page size (e.g. "4", "8", "12").
+   * Triggers full-page navigation.
    */
   async setPageSize(size: string) {
     await Promise.all([
       this.page.waitForNavigation({ waitUntil: 'domcontentloaded' }).catch(() => {}),
-      this.pageSizeSelect.selectOption({ label: size })
+      this.pageSizeSelect.selectOption({ label: size }),
     ]);
   }
 
   /**
-   * Set view mode ("Grid" or "List")
+   * Switches the view mode between "Grid" and "List".
+   * Triggers full-page navigation.
    */
   async setViewMode(mode: 'Grid' | 'List') {
     await Promise.all([
       this.page.waitForNavigation({ waitUntil: 'domcontentloaded' }).catch(() => {}),
-      this.viewModeSelect.selectOption({ label: mode })
+      this.viewModeSelect.selectOption({ label: mode }),
     ]);
   }
 
-  /**
-   * Gets all product titles currently displayed on the page
-   */
+  /** Returns every visible product title on the current page. */
   async getProductTitles(): Promise<string[]> {
-    return await this.productTitles.allTextContents();
+    return this.productTitles.allTextContents();
   }
 
-  /**
-   * Gets all product prices currently displayed on the page as numbers
-   */
+  /** Returns every visible product price as a parsed float. */
   async getProductPrices(): Promise<number[]> {
     const raw = await this.productPrices.allTextContents();
     return raw.map(t => {
-      const cleaned = t.replace(/[^0-9.-]+/g, '');
-      const val = parseFloat(cleaned);
+      const val = parseFloat(t.replace(/[^0-9.-]+/g, ''));
       return isNaN(val) ? 0 : val;
     });
   }
 
-  /**
-   * Opens product details by title
-   */
+  /** Opens a product by clicking its title link (filtered by text). */
   async openProduct(title: string) {
     await this.productTitles.filter({ hasText: title }).first().click();
     await this.page.waitForLoadState('domcontentloaded');

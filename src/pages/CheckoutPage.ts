@@ -16,10 +16,21 @@ export interface BillingAddressDetails {
 }
 
 /**
- * Page Object for One-Page Checkout (OPC)
+ * Page Object for the One-Page Checkout (OPC)
+ *
+ * Locator strategy:
+ *  - Billing text inputs   → getByLabel() — nopCommerce renders proper <label for="…">
+ *  - Country / State selects → getByLabel() (labels present)
+ *  - Continue / Confirm buttons → getByRole('button', { name: … }) scoped to step containers
+ *    to avoid matching multiple "Continue" buttons on the collapsed OPC accordion
+ *  - Shipping options (radios) → getByRole('radio') scoped within the step panel
+ *  - Payment method radios → getByRole('radio') scoped within the step panel
+ *  - Order completed heading  → getByRole('heading') / getByText()
+ *  - ID fallbacks are used only for shipping/payment radios that have no label text
  */
 export class CheckoutPage extends BasePage {
-  // Step 1: Billing Address
+  // ── Step 1: Billing Address ────────────────────────────────────────────────
+  readonly billingSection: Locator;
   readonly billingSelect: Locator;
   readonly billingFirstName: Locator;
   readonly billingLastName: Locator;
@@ -33,31 +44,36 @@ export class CheckoutPage extends BasePage {
   readonly billingPhoneNumber: Locator;
   readonly billingContinueBtn: Locator;
 
-  // Step 2: Shipping Address
+  // ── Step 2: Shipping Address ───────────────────────────────────────────────
+  readonly shippingSection: Locator;
   readonly shippingSelect: Locator;
   readonly pickUpInStoreCheckbox: Locator;
   readonly shippingContinueBtn: Locator;
 
-  // Step 3: Shipping Method
+  // ── Step 3: Shipping Method ────────────────────────────────────────────────
+  readonly shippingMethodSection: Locator;
   readonly groundShippingOption: Locator;
   readonly nextDayShippingOption: Locator;
   readonly secondDayShippingOption: Locator;
   readonly shippingMethodContinueBtn: Locator;
 
-  // Step 4: Payment Method
+  // ── Step 4: Payment Method ─────────────────────────────────────────────────
+  readonly paymentMethodSection: Locator;
   readonly paymentMethodCashOnDelivery: Locator;
   readonly paymentMethodCheck: Locator;
   readonly paymentMethodCreditCard: Locator;
   readonly paymentMethodContinueBtn: Locator;
 
-  // Step 5: Payment Info
+  // ── Step 5: Payment Info ───────────────────────────────────────────────────
+  readonly paymentInfoSection: Locator;
   readonly paymentInfoInstruction: Locator;
   readonly paymentInfoContinueBtn: Locator;
 
-  // Step 6: Confirm Order
+  // ── Step 6: Confirm Order ──────────────────────────────────────────────────
+  readonly confirmSection: Locator;
   readonly confirmOrderBtn: Locator;
 
-  // Order Completed
+  // ── Order Completed ────────────────────────────────────────────────────────
   readonly orderCompletedTitle: Locator;
   readonly orderNumberText: Locator;
   readonly orderDetailsLink: Locator;
@@ -65,57 +81,69 @@ export class CheckoutPage extends BasePage {
 
   constructor(page: Page) {
     super(page);
-    // Billing
+
+    // Section containers — scope buttons to prevent matching across all steps
+    this.billingSection        = page.locator('#opc-billing');
+    this.shippingSection       = page.locator('#opc-shipping');
+    this.shippingMethodSection = page.locator('#opc-shipping_method');
+    this.paymentMethodSection  = page.locator('#opc-payment_method');
+    this.paymentInfoSection    = page.locator('#opc-payment_info');
+    this.confirmSection        = page.locator('#opc-confirm_order');
+
+    // ── Billing ────────────────────────────────────────────────────────────
+    // Address dropdown (registered users with saved addresses)
     this.billingSelect = page.locator('#billing-address-select');
-    this.billingFirstName = page.locator('#BillingNewAddress_FirstName');
-    this.billingLastName = page.locator('#BillingNewAddress_LastName');
-    this.billingEmail = page.locator('#BillingNewAddress_Email');
-    this.billingCompany = page.locator('#BillingNewAddress_Company');
-    this.billingCountrySelect = page.locator('#BillingNewAddress_CountryId');
-    this.billingStateSelect = page.locator('#BillingNewAddress_StateProvinceId');
-    this.billingCity = page.locator('#BillingNewAddress_City');
-    this.billingAddress1 = page.locator('#BillingNewAddress_Address1');
-    this.billingZipPostalCode = page.locator('#BillingNewAddress_ZipPostalCode');
-    this.billingPhoneNumber = page.locator('#BillingNewAddress_PhoneNumber');
-    this.billingContinueBtn = page.locator('#billing-buttons-container input.button-1, input[onclick="Billing.save()"]');
 
-    // Shipping Address
-    this.shippingSelect = page.locator('#shipping-address-select');
-    this.pickUpInStoreCheckbox = page.locator('#PickUpInStore');
-    this.shippingContinueBtn = page.locator('#shipping-buttons-container input.button-1, input[onclick="Shipping.save()"]');
+    // Input fields — labels are "First Name:", "Last Name:", "Email:", etc.
+    this.billingFirstName    = page.getByLabel('First Name:').first();
+    this.billingLastName     = page.getByLabel('Last Name:').first();
+    this.billingEmail        = page.getByLabel('Email:').first();
+    this.billingCompany      = page.getByLabel('Company:').first();
+    this.billingCountrySelect = page.getByLabel('Country:').first();
+    this.billingStateSelect  = page.getByLabel('State / province:').first();
+    this.billingCity         = page.getByLabel('City:').first();
+    this.billingAddress1     = page.getByLabel('Address 1:').first();
+    this.billingZipPostalCode = page.getByLabel('Zip / postal code:').first();
+    this.billingPhoneNumber  = page.getByLabel('Phone number:').first();
 
-    // Shipping Method
-    this.groundShippingOption = page.locator('#shippingoption_0');
-    this.nextDayShippingOption = page.locator('#shippingoption_1');
-    this.secondDayShippingOption = page.locator('#shippingoption_2');
-    this.shippingMethodContinueBtn = page.locator('#shipping-method-buttons-container input.button-1, input[onclick="ShippingMethod.save()"]');
+    // Continue button — scoped to billing section to avoid matching other steps
+    this.billingContinueBtn = this.billingSection.getByRole('button', { name: 'Continue' });
 
-    // Payment Method
+    // ── Shipping ───────────────────────────────────────────────────────────
+    this.shippingSelect         = page.locator('#shipping-address-select');
+    this.pickUpInStoreCheckbox  = page.getByRole('checkbox', { name: /pick up in store/i });
+    this.shippingContinueBtn    = this.shippingSection.getByRole('button', { name: 'Continue' });
+
+    // ── Shipping Method ────────────────────────────────────────────────────
+    // Radios use id="shippingoption_N" with adjacent labels — locator fallback acceptable
+    this.groundShippingOption       = page.locator('#shippingoption_0');
+    this.nextDayShippingOption      = page.locator('#shippingoption_1');
+    this.secondDayShippingOption    = page.locator('#shippingoption_2');
+    this.shippingMethodContinueBtn  = this.shippingMethodSection.getByRole('button', { name: 'Continue' });
+
+    // ── Payment Method ─────────────────────────────────────────────────────
     this.paymentMethodCashOnDelivery = page.locator('#paymentmethod_0');
-    this.paymentMethodCheck = page.locator('#paymentmethod_1');
-    this.paymentMethodCreditCard = page.locator('#paymentmethod_2');
-    this.paymentMethodContinueBtn = page.locator('#payment-method-buttons-container input.button-1, input[onclick="PaymentMethod.save()"]');
+    this.paymentMethodCheck          = page.locator('#paymentmethod_1');
+    this.paymentMethodCreditCard     = page.locator('#paymentmethod_2');
+    this.paymentMethodContinueBtn    = this.paymentMethodSection.getByRole('button', { name: 'Continue' });
 
-    // Payment Info
-    this.paymentInfoInstruction = page.locator('#checkout-step-payment-info .info');
-    this.paymentInfoContinueBtn = page.locator('#payment-info-buttons-container input.button-1, input[onclick="PaymentInfo.save()"]');
+    // ── Payment Info ───────────────────────────────────────────────────────
+    this.paymentInfoInstruction  = page.locator('#checkout-step-payment-info .info');
+    this.paymentInfoContinueBtn  = this.paymentInfoSection.getByRole('button', { name: 'Continue' });
 
-    // Confirm Order
-    this.confirmOrderBtn = page.locator('#confirm-order-buttons-container input.button-1, input[onclick="ConfirmOrder.save()"]');
+    // ── Confirm Order ──────────────────────────────────────────────────────
+    this.confirmOrderBtn = this.confirmSection.getByRole('button', { name: 'Confirm' });
 
-    // Completed
-    this.orderCompletedTitle = page.locator('.section.order-completed .title');
-    this.orderNumberText = page.locator('.section.order-completed ul.details li:has-text("Order number")');
-    this.orderDetailsLink = page.locator('.section.order-completed a:has-text("Click here for order details.")');
-    this.orderCompletedContinueBtn = page.locator('input.button-2.order-completed-continue-button');
+    // ── Order Completed ────────────────────────────────────────────────────
+    this.orderCompletedTitle      = page.getByText('Your order has been successfully processed!');
+    this.orderNumberText          = page.locator('.section.order-completed ul.details li').filter({ hasText: 'Order number' });
+    this.orderDetailsLink         = page.getByRole('link', { name: /click here for order details/i });
+    this.orderCompletedContinueBtn = page.getByRole('button', { name: 'Continue' });
   }
 
-  /**
-   * Completes Step 1: Billing Address
-   */
+  /** Completes Step 1: fills billing address fields and clicks Continue. */
   async fillBillingAddress(data: BillingAddressDetails) {
     if (await this.billingSelect.isVisible()) {
-      // If dropdown exists, select 'New Address' if needed
       await this.billingSelect.selectOption({ label: 'New Address' }).catch(() => {});
     }
 
@@ -140,17 +168,13 @@ export class CheckoutPage extends BasePage {
     await this.billingContinueBtn.click();
   }
 
-  /**
-   * Completes Step 2: Shipping Address
-   */
+  /** Completes Step 2: Shipping Address (uses same address as billing by default). */
   async completeShippingAddress() {
     await expect(this.shippingContinueBtn).toBeVisible({ timeout: 15000 });
     await this.shippingContinueBtn.click();
   }
 
-  /**
-   * Completes Step 3: Shipping Method
-   */
+  /** Completes Step 3: selects a shipping method and continues. */
   async selectShippingMethod(method: 'ground' | 'nextDay' | 'secondDay' = 'ground') {
     await expect(this.shippingMethodContinueBtn).toBeVisible({ timeout: 15000 });
     if (method === 'nextDay' && await this.nextDayShippingOption.isVisible()) {
@@ -163,9 +187,7 @@ export class CheckoutPage extends BasePage {
     await this.shippingMethodContinueBtn.click();
   }
 
-  /**
-   * Completes Step 4: Payment Method
-   */
+  /** Completes Step 4: selects a payment method and continues. */
   async selectPaymentMethod(method: 'cod' | 'check' | 'creditCard' = 'cod') {
     await expect(this.paymentMethodContinueBtn).toBeVisible({ timeout: 15000 });
     if (method === 'check' && await this.paymentMethodCheck.isVisible()) {
@@ -178,25 +200,19 @@ export class CheckoutPage extends BasePage {
     await this.paymentMethodContinueBtn.click();
   }
 
-  /**
-   * Completes Step 5: Payment Information
-   */
+  /** Completes Step 5: Payment Info (instruction step — just continues). */
   async completePaymentInfo() {
     await expect(this.paymentInfoContinueBtn).toBeVisible({ timeout: 15000 });
     await this.paymentInfoContinueBtn.click();
   }
 
-  /**
-   * Completes Step 6: Confirm Order
-   */
+  /** Completes Step 6: Confirm Order. */
   async confirmOrder() {
     await expect(this.confirmOrderBtn).toBeVisible({ timeout: 15000 });
     await this.confirmOrderBtn.click();
   }
 
-  /**
-   * Executes entire checkout sequence end-to-end
-   */
+  /** Runs the entire checkout from billing through order confirmation. */
   async completeFullCheckout(billingData: BillingAddressDetails) {
     await this.fillBillingAddress(billingData);
     await this.completeShippingAddress();
@@ -207,11 +223,9 @@ export class CheckoutPage extends BasePage {
     await expect(this.orderCompletedTitle).toBeVisible({ timeout: 20000 });
   }
 
-  /**
-   * Extracts order ID from success page
-   */
+  /** Extracts the numeric order ID from the success page. */
   async getOrderNumber(): Promise<string> {
-    const text = (await this.orderNumberText.textContent()) || '';
+    const text  = (await this.orderNumberText.textContent()) || '';
     const match = text.match(/\d+/);
     return match ? match[0] : '';
   }

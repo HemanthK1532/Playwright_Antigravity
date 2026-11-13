@@ -1,136 +1,132 @@
 import { Page, Locator, expect } from '@playwright/test';
 
 /**
- * BasePage provides reusable components and actions shared across all pages in Demo Web Shop:
- * - Top header links (Register, Log in, Log out, Account, Cart, Wishlist)
- * - Header search box
- * - Top navigation menu
- * - Flyout cart & global notification bar
+ * BasePage provides reusable components and actions shared across all pages in Demo Web Shop.
+ *
+ * Locator strategy (in priority order per Playwright best practices):
+ *   1. getByRole()       — semantic ARIA roles (links, buttons, checkboxes, textboxes)
+ *   2. getByLabel()      — form fields associated via <label for="…">
+ *   3. getByPlaceholder()— inputs identified by placeholder text
+ *   4. getByText()       — elements identified by visible text
+ *   5. locator()         — CSS/ID fallback only when no semantic locator is unique
+ *
+ * Scoping: header links are scoped inside `.header-links` to avoid collisions
+ * with product-page wishlist/cart links.
  */
 export class BasePage {
   readonly page: Page;
 
-  // Header navigation locators
+  // ── Header navigation ──────────────────────────────────────────────────────
   readonly headerLogo: Locator;
   readonly registerLink: Locator;
   readonly loginLink: Locator;
   readonly logoutLink: Locator;
-  readonly accountLink: Locator;
+  readonly accountLink: Locator;      // dynamic — email as link text; kept as CSS
   readonly cartLink: Locator;
   readonly cartQtyBadge: Locator;
   readonly wishlistLink: Locator;
   readonly wishlistQtyBadge: Locator;
 
-  // Search box locators
+  // ── Header search box ──────────────────────────────────────────────────────
   readonly searchInput: Locator;
   readonly searchButton: Locator;
 
-  // Notification bar
+  // ── Notification bar ───────────────────────────────────────────────────────
   readonly notificationBar: Locator;
   readonly notificationMessage: Locator;
   readonly notificationCloseBtn: Locator;
 
-  // Top navigation menu
+  // ── Top navigation menu ────────────────────────────────────────────────────
   readonly topMenu: Locator;
 
   constructor(page: Page) {
     this.page = page;
+
     this.headerLogo = page.locator('.header-logo a');
-    this.registerLink = page.locator('.header-links a.ico-register');
-    this.loginLink = page.locator('.header-links a.ico-login');
-    this.logoutLink = page.locator('.header-links a.ico-logout');
-    this.accountLink = page.locator('.header-links a.account');
-    this.cartLink = page.locator('.header-links a.ico-cart');
-    this.cartQtyBadge = page.locator('.header-links .cart-qty');
-    this.wishlistLink = page.locator('.header-links a.ico-wishlist');
-    this.wishlistQtyBadge = page.locator('.header-links .wishlist-qty');
 
-    this.searchInput = page.locator('#small-searchterms');
-    this.searchButton = page.locator('input.button-1.search-box-button');
+    // Scope header links to avoid duplicate matches on product detail pages
+    const headerLinks = page.locator('.header-links');
+    this.registerLink   = headerLinks.getByRole('link', { name: 'Register' });
+    this.loginLink      = headerLinks.getByRole('link', { name: 'Log in' });
+    this.logoutLink     = headerLinks.getByRole('link', { name: 'Logout' });
+    this.accountLink    = headerLinks.locator('a.account');           // text = user email (dynamic)
+    this.cartLink       = headerLinks.getByRole('link', { name: /Shopping cart/i });
+    this.cartQtyBadge   = page.locator('#topcartlink .cart-qty');
+    this.wishlistLink   = headerLinks.getByRole('link', { name: /Wishlist/i });
+    this.wishlistQtyBadge = headerLinks.locator('.wishlist-qty');
 
-    this.notificationBar = page.locator('#bar-notification');
-    this.notificationMessage = page.locator('#bar-notification p.content');
+    // Search box — `#small-searchterms` has value="Search store" (not a placeholder).
+    // getByRole('searchbox') covers it; fall back to the ID when that is ambiguous.
+    this.searchInput  = page.locator('#small-searchterms');
+    this.searchButton = page.locator('.search-box').getByRole('button', { name: 'Search' });
+
+    this.notificationBar      = page.locator('#bar-notification');
+    this.notificationMessage  = page.locator('#bar-notification p.content');
     this.notificationCloseBtn = page.locator('#bar-notification span.close');
 
     this.topMenu = page.locator('ul.top-menu');
   }
 
-  /**
-   * Navigates to a specific path relative to baseURL
-   */
+  // ── Navigation helpers ──────────────────────────────────────────────────────
+
   async navigateTo(path: string = '/') {
     await this.page.goto(path);
     await this.page.waitForLoadState('domcontentloaded');
   }
 
-  /**
-   * Navigates to the Home page
-   */
   async gotoHome() {
     await this.navigateTo('/');
   }
 
-  /**
-   * Clicks the Register link
-   */
   async clickRegister() {
     await this.registerLink.click();
     await this.page.waitForLoadState('domcontentloaded');
   }
 
-  /**
-   * Clicks the Login link
-   */
   async clickLogin() {
     await this.loginLink.click();
     await this.page.waitForLoadState('domcontentloaded');
   }
 
-  /**
-   * Clicks the Logout link
-   */
   async clickLogout() {
     await this.logoutLink.click();
     await this.page.waitForLoadState('domcontentloaded');
   }
 
-  /**
-   * Clicks the Shopping Cart link in header
-   */
   async clickShoppingCart() {
     await this.cartLink.click();
     await this.page.waitForLoadState('domcontentloaded');
   }
 
-  /**
-   * Clicks the Wishlist link in header
-   */
   async clickWishlist() {
     await this.wishlistLink.click();
     await this.page.waitForLoadState('domcontentloaded');
   }
 
-  /**
-   * Performs quick search from the header input
-   */
+  // ── Search ──────────────────────────────────────────────────────────────────
+
   async searchFor(term: string) {
     await this.searchInput.fill(term);
     await this.searchButton.click();
     await this.page.waitForLoadState('domcontentloaded');
   }
 
+  // ── Category navigation ─────────────────────────────────────────────────────
+
   /**
-   * Selects a category from the top menu by visible text
+   * Clicks a top-level category link by its exact visible name.
+   * Uses getByRole scoped to the top menu for precision.
    */
   async selectCategory(categoryName: string) {
-    const categoryLink = this.topMenu.locator(`> li > a:has-text("${categoryName}")`).first();
-    await categoryLink.click();
+    await this.topMenu
+      .getByRole('link', { name: categoryName, exact: true })
+      .first()
+      .click();
     await this.page.waitForLoadState('domcontentloaded');
   }
 
-  /**
-   * Waits for the success/error notification bar and optionally closes it
-   */
+  // ── Notification bar ────────────────────────────────────────────────────────
+
   async waitForNotification(): Promise<string> {
     await expect(this.notificationBar).toBeVisible({ timeout: 10000 });
     const text = (await this.notificationMessage.textContent()) || '';
@@ -140,18 +136,14 @@ export class BasePage {
     return text.trim();
   }
 
-  /**
-   * Gets current cart quantity as number
-   */
+  // ── Cart / Wishlist counts ──────────────────────────────────────────────────
+
   async getCartCount(): Promise<number> {
     const text = await this.cartQtyBadge.textContent();
     const match = text?.match(/\d+/);
     return match ? parseInt(match[0], 10) : 0;
   }
 
-  /**
-   * Gets current wishlist quantity as number
-   */
   async getWishlistCount(): Promise<number> {
     const text = await this.wishlistQtyBadge.textContent();
     const match = text?.match(/\d+/);
